@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkHarvest Pro — Extract & Export Links from Any Website</title>
+  <meta name="description" content="Extract all links from any website and export to Excel, CSV or JSON in one click. Find broken links instantly. Free Chrome extension." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0d0d14;
+      --ink2: #2a2a3d;
+      --muted: #6b7280;
+      --accent: #0ea5e9;
+      --accent2: #0284c7;
+      --accent-dark: #075985;
+      --gold: #f59e0b;
+      --surface: #ffffff;
+      --bg: #f0f9ff;
+      --border: #e0f2fe;
+      --r: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); overflow-x: hidden; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5vw; height: 62px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      overflow: visible;
+    }
+    .nav-logo {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px;
+      color: var(--accent); display: flex; align-items: center; gap: 8px;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .nav-logo span { color: var(--ink); }
+    .nav-links { display: flex; align-items: center; gap: clamp(12px, 2vw, 28px); flex-shrink: 1; }
+    .nav-links a {
+      font-size: clamp(11px, 1.2vw, 13px); font-weight: 500; color: var(--muted);
+      text-decoration: none; transition: color .2s; white-space: nowrap;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .lang-select {
+      font-size: 12px; border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 8px; color: var(--ink2);
+      background: var(--surface); cursor: pointer; outline: none;
+    }
+    .btn-nav {
+      background: var(--accent); color: white;
+      font-size: clamp(11px, 1.2vw, 13px); font-weight: 600;
+      padding: 8px 14px; border-radius: 8px;
+      text-decoration: none; transition: opacity .2s;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-nav:hover { opacity: .85; }
+    .nav-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .nav-hamburger {
+      display: none; flex-direction: column; justify-content: center; gap: 5px;
+      background: none; border: none; cursor: pointer;
+      padding: 6px; width: 36px; height: 36px;
+    }
+    .nav-hamburger span {
+      display: block; width: 22px; height: 2px;
+      background: var(--ink); border-radius: 2px; transition: all .3s;
+    }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 88vh; display: grid; place-items: center;
+      padding: 80px 5vw 60px;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, #bae6fd 0%, transparent 70%),
+                  radial-gradient(ellipse 50% 40% at 90% 80%, #fef3c7 0%, transparent 60%),
+                  var(--surface);
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .hero-inner { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 860px; position: relative; }
+    .hero::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230ea5e9' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+      pointer-events: none;
+    }
+    .hero-content { position: relative; max-width: 760px; width: 100%; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #e0f2fe; color: var(--accent);
+      font-size: 12px; font-weight: 600;
+      padding: 5px 12px; border-radius: 100px;
+      margin-bottom: 24px; border: 1px solid #bae6fd;
+      animation: fadeUp .6s ease both;
+    }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 7vw, 68px);
+      font-weight: 800; line-height: 1.07; letter-spacing: -1px;
+      word-break: break-word; overflow-wrap: break-word;
+      animation: fadeUp .6s .1s ease both;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(14px, 2.5vw, 20px); font-weight: 300; color: var(--muted);
+      margin: 20px auto 36px; max-width: 540px; line-height: 1.6;
+      animation: fadeUp .6s .2s ease both;
+    }
+    .hero-ctas {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      flex-wrap: wrap; animation: fadeUp .6s .3s ease both;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white; font-weight: 600; font-size: clamp(13px, 1.8vw, 15px);
+      padding: 14px 28px; border-radius: 10px;
+      text-decoration: none; transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(14,165,233,.35); white-space: nowrap;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(14,165,233,.4); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: white; color: var(--ink2); font-weight: 500; font-size: clamp(13px, 1.8vw, 15px);
+      padding: 14px 28px; border-radius: 10px;
+      text-decoration: none; border: 1.5px solid var(--border);
+      transition: border-color .2s; white-space: nowrap;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .hero-note { margin-top: 16px; font-size: 12px; color: var(--muted); animation: fadeUp .6s .4s ease both; }
+    .hero-note strong { color: var(--ink); }
+
+    /* Hero mockup */
+    .hero-mockup {
+      margin: 48px auto 0; max-width: 520px; width: 100%;
+      background: white; border-radius: 16px;
+      box-shadow: 0 30px 80px rgba(14,165,233,.12), 0 0 0 1px var(--border);
+      overflow: hidden; animation: fadeUp .8s .4s ease both;
+    }
+    .mockup-bar {
+      background: var(--accent); padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .mockup-bar-left { display: flex; align-items: center; gap: 8px; }
+    .mockup-bar-left h3 { color: white; font-size: 14px; font-weight: 600; font-family: 'Syne', sans-serif; }
+    .mockup-bar-left p { color: rgba(255,255,255,.7); font-size: 10px; }
+    .mockup-badge { background: rgba(255,255,255,.2); color: white; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+    .mockup-body { padding: 16px; }
+    .mockup-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+    .mockup-tab { flex: 1; text-align: center; padding: 8px; font-size: 11px; font-weight: 500; color: var(--muted); cursor: default; }
+    .mockup-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+    .mockup-stats { display: flex; gap: 8px; margin-bottom: 12px; }
+    .mockup-stat {
+      flex: 1; text-align: center; padding: 8px 4px;
+      border: 1px solid var(--border); border-radius: 8px;
+    }
+    .mockup-stat-num { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--ink); }
+    .mockup-stat-num.ext { color: var(--accent); }
+    .mockup-stat-num.broken { color: #ef4444; }
+    .mockup-stat-label { font-size: 9px; color: var(--muted); margin-top: 1px; }
+    .mockup-filter {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    }
+    .mockup-search {
+      flex: 1; border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 10px; font-size: 11px; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .mockup-select {
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 8px; font-size: 10px; color: var(--ink2);
+      background: var(--bg);
+    }
+    .mockup-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 5px; font-size: 11px;
+    }
+    .mockup-row-left { display: flex; align-items: center; gap: 8px; }
+    .mockup-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .mockup-row-title { font-weight: 500; font-size: 11px; }
+    .mockup-row-url { font-size: 9px; color: var(--muted); }
+    .mockup-chip { font-size: 9px; background: #e0f2fe; color: var(--accent); border-radius: 20px; padding: 2px 7px; font-weight: 600; white-space: nowrap; }
+    .mockup-chip.broken { background: #fee2e2; color: #ef4444; }
+    .mockup-chip.internal { background: #f0fdf4; color: #16a34a; }
+    .mockup-copy { font-size: 16px; cursor: default; }
+    .mockup-btns { display: flex; gap: 6px; margin-top: 12px; }
+    .mockup-btn {
+      flex: 1; background: #f0f9ff; color: var(--accent); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px; font-size: 11px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .mockup-btn.main {
+      flex: 2; background: var(--accent); color: white; border-color: transparent;
+    }
+    .mockup-broken-btn {
+      width: 100%; margin-top: 6px; background: white; color: #ef4444;
+      border: 1px solid #fecaca; border-radius: 8px; padding: 8px; font-size: 11px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;
+    }
+
+    /* ── LOGOS ── */
+    .logos {
+      padding: 32px 5vw; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      text-align: center; background: var(--bg);
+    }
+    .logos p { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 20px; font-weight: 600; }
+    .logos-row { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; justify-content: center; }
+    .logo-item { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; color: #ccc; letter-spacing: -0.5px; }
+
+    /* ── SECTIONS ── */
+    section { padding: 96px 5vw; }
+    .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); margin-bottom: 12px; }
+    .section-title { font-family: 'Syne', sans-serif; font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -1px; line-height: 1.1; max-width: 560px; }
+    .section-sub { color: var(--muted); font-size: 16px; font-weight: 300; margin-top: 12px; max-width: 480px; line-height: 1.65; }
+    .section-center { text-align: center; }
+    .section-center .section-title, .section-center .section-sub { margin-left: auto; margin-right: auto; }
+
+    /* ── FEATURES ── */
+    .features { background: var(--bg); }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 56px; }
+    .feature-card {
+      background: white; border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px;
+      transition: box-shadow .25s, transform .25s;
+    }
+    .feature-card:hover { box-shadow: 0 12px 36px rgba(14,165,233,.1); transform: translateY(-4px); }
+    .feature-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+      display: grid; place-items: center; font-size: 20px; margin-bottom: 16px;
+    }
+    .feature-card h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+    .feature-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .pro-tag { display: inline-block; margin-top: 10px; font-size: 10px; font-weight: 700; color: #92400e; background: #fef3c7; border-radius: 4px; padding: 2px 7px; }
+
+    /* ── HOW IT WORKS ── */
+    .how-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; margin-top: 56px; position: relative; }
+    .how-steps::before {
+      content: ""; position: absolute; top: 30px; left: 10%; right: 10%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+    .step { text-align: center; padding: 24px 16px; }
+    .step-num {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white; font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+      display: grid; place-items: center; margin: 0 auto 16px;
+      box-shadow: 0 8px 20px rgba(14,165,233,.3);
+    }
+    .step h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+    .step p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── PRICING ── */
+    .pricing { background: var(--bg); }
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 700px; margin: 56px auto 0; }
+    @media (max-width: 600px) { .pricing-grid { grid-template-columns: 1fr; } }
+    .price-card { background: white; border: 1.5px solid var(--border); border-radius: 20px; padding: 32px 28px; }
+    .price-card.featured {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: transparent; color: white; position: relative; overflow: hidden;
+    }
+    .price-card.featured::before {
+      content: "MOST POPULAR"; position: absolute; top: 16px; right: -18px;
+      background: var(--gold); color: #1a1a2e; font-size: 9px; font-weight: 800;
+      letter-spacing: 1px; padding: 4px 24px; transform: rotate(30deg);
+    }
+    .price-plan { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; opacity: .6; margin-bottom: 8px; }
+    .price-amount { font-family: 'Syne', sans-serif; font-size: 48px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+    .price-amount span { font-size: 16px; font-weight: 400; opacity: .6; }
+    .price-desc { font-size: 13px; opacity: .7; margin: 8px 0 24px; }
+    .price-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .price-features li { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .price-features li::before { content: "✓"; font-weight: 700; color: #22c55e; flex-shrink: 0; }
+    .price-card.featured .price-features li::before { color: #a7f3d0; }
+    .price-card.featured .price-features li { color: rgba(255,255,255,.9); }
+    .btn-price {
+      display: block; text-align: center; width: 100%; padding: 12px; border-radius: 10px;
+      font-weight: 600; font-size: 14px; text-decoration: none; transition: opacity .2s;
+    }
+    .btn-price:hover { opacity: .85; }
+    .btn-price-outline { background: transparent; border: 1.5px solid var(--border); color: var(--ink2); }
+    .btn-price-white { background: white; color: var(--accent); }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 56px; }
+    .testi-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+    .testi-stars { color: var(--gold); font-size: 14px; margin-bottom: 12px; }
+    .testi-text { font-size: 14px; color: var(--ink2); line-height: 1.65; margin-bottom: 16px; font-style: italic; }
+    .testi-author { display: flex; align-items: center; gap: 10px; }
+    .testi-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: grid; place-items: center; color: white; font-weight: 700; font-size: 14px; flex-shrink: 0;
+    }
+    .testi-name { font-weight: 600; font-size: 13px; }
+    .testi-role { font-size: 11px; color: var(--muted); }
+
+    /* ── FAQ ── */
+    .faq-list { max-width: 680px; margin: 56px auto 0; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    .faq-q {
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    }
+    .faq-icon { flex-shrink: 0; font-size: 20px; color: var(--accent); transition: transform .2s; }
+    .faq-a { font-size: 14px; color: var(--muted); line-height: 1.7; margin-top: 12px; display: none; }
+    .faq-item.open .faq-a { display: block; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+
+    /* ── CTA BANNER ── */
+    .cta-banner {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      margin: 0 5vw 80px; border-radius: 24px; padding: 64px 5vw;
+      text-align: center; color: white; position: relative; overflow: hidden;
+    }
+    .cta-banner::before {
+      content: ""; position: absolute; top: -60px; right: -60px;
+      width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,.06);
+    }
+    .cta-banner::after {
+      content: ""; position: absolute; bottom: -80px; left: -40px;
+      width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,.04);
+    }
+    .cta-banner h2 {
+      font-family: 'Syne', sans-serif; font-size: clamp(26px, 4vw, 42px);
+      font-weight: 800; letter-spacing: -1px; margin-bottom: 12px; position: relative;
+    }
+    .cta-banner p { font-size: 16px; opacity: .8; margin-bottom: 32px; position: relative; }
+    .cta-banner .btn-primary { background: white; color: var(--accent); box-shadow: 0 8px 30px rgba(0,0,0,.2); position: relative; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--ink); color: rgba(255,255,255,.5);
+      padding: 40px 5vw; display: flex; flex-wrap: wrap; gap: 20px;
+      align-items: center; justify-content: space-between; font-size: 12px;
+    }
+    footer strong { color: white; font-family: 'Syne', sans-serif; }
+    footer a { color: rgba(255,255,255,.5); text-decoration: none; }
+    footer a:hover { color: white; }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-corelith {
+      display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,.35);
+      border-top: 1px solid rgba(255,255,255,.08); width: 100%; padding-top: 20px; margin-top: 4px; justify-content: center;
+    }
+    .footer-corelith a {
+      color: rgba(255,255,255,.55); font-weight: 600; font-family: 'Syne', sans-serif;
+      font-size: 12px; letter-spacing: 0.5px; text-decoration: none; transition: color .2s;
+    }
+    .footer-corelith a:hover { color: white; }
+    .corelith-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); display: inline-block; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── RESPONSIVE 900px ── */
+    @media (max-width: 900px) {
+      .nav-links { gap: 16px; }
+      .nav-links a { font-size: 12px; }
+      .btn-nav { padding: 7px 12px; font-size: 12px; }
+    }
+
+    /* ── RESPONSIVE mobile ── */
+    @media (max-width: 768px) {
+      nav { height: auto; min-height: 62px; flex-wrap: wrap; }
+      .nav-hamburger { display: flex; }
+      .nav-links {
+        display: none; width: 100%; flex-direction: column; align-items: flex-start; gap: 0;
+        padding: 12px 0 16px; border-top: 1px solid var(--border); order: 3;
+      }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 11px 0; font-size: 15px; width: 100%; border-bottom: 1px solid var(--border); }
+      .lang-select { margin-top: 12px; width: 100%; padding: 8px 12px; font-size: 14px; }
+      .btn-nav { font-size: 12px; padding: 7px 12px; }
+      section { padding: 56px 5vw; }
+      .hero { padding: 52px 5vw 44px; min-height: auto; }
+      .hero h1 { font-size: clamp(28px, 9vw, 48px); letter-spacing: -0.5px; }
+      .hero-sub { font-size: 15px; }
+      .hero-ctas { flex-direction: column; align-items: stretch; }
+      .btn-primary, .btn-secondary { justify-content: center; text-align: center; font-size: 15px; padding: 14px 20px; white-space: normal; }
+      .hero-mockup { max-width: 100%; margin-top: 32px; }
+      .how-steps::before { display: none; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 100%; }
+      .logos-row { gap: 16px; }
+      .cta-banner { margin: 0 0 60px; border-radius: 0; padding: 48px 5vw; }
+      footer { flex-direction: column; align-items: center; text-align: center; }
+      .footer-links { justify-content: center; flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">🔗 <span>LinkHarvest Pro</span></div>
+  <div class="nav-links" id="navLinks">
+    <a href="#features" data-i18n="nav_features">Features</a>
+    <a href="#how" data-i18n="nav_how">How it works</a>
+    <a href="#pricing" data-i18n="nav_pricing">Pricing</a>
+    <a href="#faq" data-i18n="nav_faq">FAQ</a>
+    <select class="lang-select" id="langSelect">
+      <option value="en">🇬🇧 English</option>
+      <option value="pt">🇧🇷 Português</option>
+      <option value="ja">🇯🇵 日本語</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="es">🇪🇸 Español</option>
+    </select>
+  </div>
+  <div class="nav-right">
+    <a href="https://chromewebstore.google.com" class="btn-nav" data-i18n="nav_cta">Add to Chrome — Free</a>
+    <button class="nav-hamburger" id="navHamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-badge">🔗 <span data-i18n="hero_badge">New · Version 1.0.0</span></div>
+      <h1 data-i18n-html="hero_title">Extract <em>every link</em> from any website. Instantly.</h1>
+      <p class="hero-sub" data-i18n="hero_sub">Harvest all links from any page — internal, external, broken — and export to Excel, CSV or JSON in one click. No coding needed.</p>
+      <div class="hero-ctas">
+        <a href="https://chromewebstore.google.com" class="btn-primary" data-i18n="hero_cta1">⬇ Add to Chrome — It's Free</a>
+        <a href="#how" class="btn-secondary" data-i18n="hero_cta2">▶ See how it works</a>
+      </div>
+      <p class="hero-note" data-i18n="hero_note">No credit card required · <strong>Free forever</strong> plan available</p>
+    </div>
+
+    <div class="hero-mockup">
+      <div class="mockup-bar">
+        <div class="mockup-bar-left">
+          <div>
+            <h3>🔗 LinkHarvest Pro</h3>
+            <p data-i18n="mockup_subtitle">Link extraction & analysis</p>
+          </div>
+        </div>
+        <span class="mockup-badge">PRO</span>
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-tabs">
+          <div class="mockup-tab active" data-i18n="mockup_tab1">Current tab</div>
+          <div class="mockup-tab" data-i18n="mockup_tab2">Multi-Tab ⚡</div>
+        </div>
+        <div class="mockup-stats">
+          <div class="mockup-stat">
+            <div class="mockup-stat-num">110</div>
+            <div class="mockup-stat-label">Total</div>
+          </div>
+          <div class="mockup-stat">
+            <div class="mockup-stat-num ext">81</div>
+            <div class="mockup-stat-label">External</div>
+          </div>
+          <div class="mockup-stat">
+            <div class="mockup-stat-num" style="color:#16a34a">9</div>
+            <div class="mockup-stat-label">Internal</div>
+          </div>
+          <div class="mockup-stat">
+            <div class="mockup-stat-num broken">0</div>
+            <div class="mockup-stat-label">Broken</div>
+          </div>
+        </div>
+        <div class="mockup-filter">
+          <div class="mockup-search">🔍 <span style="font-size:10px;color:var(--muted)">Filter links...</span></div>
+          <div class="mockup-select">All</div>
+        </div>
+        <div class="mockup-row">
+          <div class="mockup-row-left">
+            <div class="mockup-dot" style="background:#0ea5e9"></div>
+            <div>
+              <div class="mockup-row-title">Artificial Intelligence</div>
+              <div class="mockup-row-url">en.wikipedia.org/wiki/Artificial_intelligence</div>
+            </div>
+          </div>
+          <span class="mockup-copy">📋</span>
+        </div>
+        <div class="mockup-row">
+          <div class="mockup-row-left">
+            <div class="mockup-dot" style="background:#0ea5e9"></div>
+            <div>
+              <div class="mockup-row-title">Machine Learning</div>
+              <div class="mockup-row-url">en.wikipedia.org/wiki/Machine_learning</div>
+            </div>
+          </div>
+          <span class="mockup-copy">📋</span>
+        </div>
+        <div class="mockup-row">
+          <div class="mockup-row-left">
+            <div class="mockup-dot" style="background:#ef4444"></div>
+            <div>
+              <div class="mockup-row-title">Deep Learning (404)</div>
+              <div class="mockup-row-url">old.site.com/deep-learning</div>
+            </div>
+          </div>
+          <span class="mockup-chip broken">broken</span>
+        </div>
+        <div class="mockup-btns">
+          <div class="mockup-btn">⬇ CSV</div>
+          <div class="mockup-btn">⬇ JSON</div>
+          <div class="mockup-btn main">⬇ Excel</div>
+        </div>
+        <div class="mockup-broken-btn">🔍 Verificar links quebrados</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGOS -->
+<div class="logos">
+  <p data-i18n="logos_label">Works on any site, including</p>
+  <div class="logos-row">
+    <span class="logo-item">Wikipedia</span>
+    <span class="logo-item">GitHub</span>
+    <span class="logo-item">Medium</span>
+    <span class="logo-item">Notion</span>
+    <span class="logo-item">WordPress</span>
+    <span class="logo-item">HubSpot</span>
+    <span class="logo-item">Shopify</span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-center">
+    <div class="section-label" data-i18n="feat_label">Features</div>
+    <h2 class="section-title" data-i18n="feat_title">Everything you need to harvest links fast</h2>
+    <p class="section-sub" data-i18n="feat_sub">One click. No copying. Filter, analyze and export. Just your links, ready to use.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3 data-i18n="f1_title">Export to Excel</h3>
+      <p data-i18n="f1_desc">Download all links as a perfectly formatted .xlsx file with columns for URL, anchor text, type and status code.</p>
+      <span class="pro-tag">PRO</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h3 data-i18n="f2_title">CSV & JSON Export</h3>
+      <p data-i18n="f2_desc">Free plan includes CSV and JSON export. Perfect for developers, SEO analysts and data pipelines.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗂️</div>
+      <h3 data-i18n="f3_title">Multi-tab Extraction</h3>
+      <p data-i18n="f3_desc">Select multiple Chrome tabs and export all links from all pages into a single Excel file in seconds.</p>
+      <span class="pro-tag">PRO</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔴</div>
+      <h3 data-i18n="f4_title">Broken Link Checker</h3>
+      <p data-i18n="f4_desc">Scan the page and instantly detect 404s and broken links. Keep your site healthy without any external tool.</p>
+      <span class="pro-tag">PRO</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <h3 data-i18n="f5_title">Filter & Search</h3>
+      <p data-i18n="f5_desc">Filter links by type (internal, external), search by keyword or URL, and copy individual links with one click.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3 data-i18n="f6_title">Instant Detection</h3>
+      <p data-i18n="f6_desc">The extension automatically detects and categorizes every link on the page — including dynamically loaded ones.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-center">
+    <div class="section-label" data-i18n="how_label">How it works</div>
+    <h2 class="section-title" data-i18n="how_title">Three steps. That's it.</h2>
+  </div>
+  <div class="how-steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3 data-i18n="step1_title">Install the extension</h3>
+      <p data-i18n="step1_desc">Add LinkHarvest Pro to Chrome from the Web Store. Takes 10 seconds.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3 data-i18n="step2_title">Open any page</h3>
+      <p data-i18n="step2_desc">Go to any website. Click the extension icon. All links are detected and categorized instantly.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3 data-i18n="step3_title">Export in one click</h3>
+      <p data-i18n="step3_desc">Choose your format — Excel, CSV or JSON — and download. Your link data is ready immediately.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="section-center">
+    <div class="section-label" data-i18n="price_label">Pricing</div>
+    <h2 class="section-title" data-i18n="price_title">Start free. Upgrade when you're ready.</h2>
+    <p class="section-sub" data-i18n="price_sub">No tricks. Cancel anytime.</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-plan" data-i18n="plan_free">Free</div>
+      <div class="price-amount">$0<span data-i18n="per_month">/month</span></div>
+      <p class="price-desc" data-i18n="free_desc">Perfect for occasional use</p>
+      <ul class="price-features">
+        <li data-i18n="free_f1">CSV export</li>
+        <li data-i18n="free_f2">JSON export</li>
+        <li data-i18n="free_f3">Single-tab extraction</li>
+        <li data-i18n="free_f4">Filter & search links</li>
+        <li data-i18n="free_f5">Unlimited pages</li>
+      </ul>
+      <a href="https://chromewebstore.google.com" class="btn-price btn-price-outline" data-i18n="free_btn">Get Started Free</a>
+    </div>
+    <div class="price-card featured">
+      <div class="price-plan" data-i18n="plan_pro">Pro</div>
+      <div class="price-amount">$4<span data-i18n="per_month">/month</span></div>
+      <p class="price-desc" data-i18n="pro_desc">For power users and professionals</p>
+      <ul class="price-features">
+        <li data-i18n="pro_f1">Everything in Free</li>
+        <li data-i18n="pro_f2">Excel (.xlsx) export</li>
+        <li data-i18n="pro_f3">Multi-tab extraction</li>
+        <li data-i18n="pro_f4">Broken link checker</li>
+        <li data-i18n="pro_f5">Priority support</li>
+      </ul>
+      <a href="https://chromewebstore.google.com" class="btn-price btn-price-white" data-i18n="pro_btn">Upgrade to Pro</a>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section>
+  <div class="section-center">
+    <div class="section-label" data-i18n="testi_label">Testimonials</div>
+    <h2 class="section-title" data-i18n="testi_title">Loved by SEO pros and developers worldwide</h2>
+  </div>
+  <div class="testimonials-grid">
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text" data-i18n="t1_text">"I used to manually collect links for backlink analysis. Now I harvest 200+ links from any page in seconds and export to Excel. Absolute game changer."</p>
+      <div class="testi-author">
+        <div class="testi-avatar">R</div>
+        <div><div class="testi-name">Rafael Mendes</div><div class="testi-role">SEO Specialist · São Paulo, BR</div></div>
+      </div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text" data-i18n="t2_text">"The broken link checker alone is worth the Pro subscription. Found 40 dead links on our site in 30 seconds — before it hurt our SEO."</p>
+      <div class="testi-author">
+        <div class="testi-avatar">A</div>
+        <div><div class="testi-name">Anna Fischer</div><div class="testi-role">Web Developer · Berlin, DE</div></div>
+      </div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text" data-i18n="t3_text">"As a content manager, I audit link structure on dozens of pages every month. LinkHarvest Pro cut my audit time by 90%. I can't believe it's so cheap."</p>
+      <div class="testi-author">
+        <div class="testi-avatar">M</div>
+        <div><div class="testi-name">Maria Chen</div><div class="testi-role">Content Manager · Singapore</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" style="background: var(--bg);">
+  <div class="section-center">
+    <div class="section-label" data-i18n="faq_label">FAQ</div>
+    <h2 class="section-title" data-i18n="faq_title">Frequently asked questions</h2>
+  </div>
+  <div class="faq-list">
+    <div class="faq-item open">
+      <div class="faq-q"><span data-i18n="q1">Does it work on every website?</span><span class="faq-icon">+</span></div>
+      <p class="faq-a" data-i18n="a1">Yes. LinkHarvest Pro works on any website — including dynamic pages rendered by JavaScript. If you can see links on screen, the extension can extract them.</p>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span data-i18n="q2">Is my data safe? Does it leave my computer?</span><span class="faq-icon">+</span></div>
+      <p class="faq-a" data-i18n="a2">Your link data never leaves your browser. Extraction and export happen entirely on your machine. We only communicate with our servers for authentication and license validation.</p>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span data-i18n="q3">Can I cancel my Pro subscription anytime?</span><span class="faq-icon">+</span></div>
+      <p class="faq-a" data-i18n="a3">Absolutely. Cancel from your account dashboard in one click. You keep Pro access until the end of the billing period. No questions asked.</p>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span data-i18n="q4">How many links can I extract per day?</span><span class="faq-icon">+</span></div>
+      <p class="faq-a" data-i18n="a4">No limits. Extract links from as many pages as you need, as often as you need.</p>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span data-i18n="q5">Is there a free trial for Pro?</span><span class="faq-icon">+</span></div>
+      <p class="faq-a" data-i18n="a5">The Free plan is permanent and includes CSV/JSON export. You can use all core functionality before deciding to upgrade to Pro for Excel, multi-tab and broken link checking.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<div class="cta-banner">
+  <h2 data-i18n="cta_title">Start harvesting links in 10 seconds.</h2>
+  <p data-i18n="cta_sub">Free plan. No credit card. Install and use immediately.</p>
+  <a href="https://chromewebstore.google.com" class="btn-primary" data-i18n="cta_btn">⬇ Add to Chrome — Free</a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <strong>🔗 LinkHarvest Pro</strong><br />
+    © 2025 · <span data-i18n="footer_rights">All rights reserved</span>
+  </div>
+  <div class="footer-links">
+    <a href="privacy.html" data-i18n="footer_privacy">Privacy Policy</a>
+    <a href="#" data-i18n="footer_terms">Terms of Service</a>
+    <a href="mailto:cadufelicioandrade@gmail.com" data-i18n="footer_contact">Contact</a>
+  </div>
+  <div class="footer-corelith">
+    <span class="corelith-dot"></span>
+    A product by <a href="#" target="_blank">Corelith Nexus</a>
+    &nbsp;·&nbsp; Building tools for the modern web
+  </div>
+</footer>
+
+<script>
+const TRANSLATIONS = {
+  en: {
+    nav_features: "Features", nav_how: "How it works", nav_pricing: "Pricing",
+    nav_faq: "FAQ", nav_cta: "Add to Chrome — Free",
+    hero_badge: "New · Version 1.0.0",
+    hero_title: "Extract <em>every link</em> from any website. Instantly.",
+    hero_sub: "Harvest all links from any page — internal, external, broken — and export to Excel, CSV or JSON in one click. No coding needed.",
+    hero_cta1: "⬇ Add to Chrome — It's Free", hero_cta2: "▶ See how it works",
+    hero_note: "No credit card required · Free forever plan available",
+    mockup_subtitle: "Link extraction & analysis", mockup_tab1: "Current tab", mockup_tab2: "Multi-Tab ⚡",
+    logos_label: "Works on any site, including",
+    feat_label: "Features", feat_title: "Everything you need to harvest links fast",
+    feat_sub: "One click. No copying. Filter, analyze and export. Just your links, ready to use.",
+    f1_title: "Export to Excel", f1_desc: "Download all links as a perfectly formatted .xlsx file with columns for URL, anchor text, type and status code.",
+    f2_title: "CSV & JSON Export", f2_desc: "Free plan includes CSV and JSON export. Perfect for developers, SEO analysts and data pipelines.",
+    f3_title: "Multi-tab Extraction", f3_desc: "Select multiple Chrome tabs and export all links from all pages into a single Excel file in seconds.",
+    f4_title: "Broken Link Checker", f4_desc: "Scan the page and instantly detect 404s and broken links. Keep your site healthy without any external tool.",
+    f5_title: "Filter & Search", f5_desc: "Filter links by type (internal, external), search by keyword or URL, and copy individual links with one click.",
+    f6_title: "Instant Detection", f6_desc: "The extension automatically detects and categorizes every link on the page — including dynamically loaded ones.",
+    how_label: "How it works", how_title: "Three steps. That's it.",
+    step1_title: "Install the extension", step1_desc: "Add LinkHarvest Pro to Chrome from the Web Store. Takes 10 seconds.",
+    step2_title: "Open any page", step2_desc: "Go to any website. Click the extension icon. All links are detected and categorized instantly.",
+    step3_title: "Export in one click", step3_desc: "Choose your format — Excel, CSV or JSON — and download. Your link data is ready immediately.",
+    price_label: "Pricing", price_title: "Start free. Upgrade when you're ready.", price_sub: "No tricks. Cancel anytime.",
+    plan_free: "Free", plan_pro: "Pro", per_month: "/month",
+    free_desc: "Perfect for occasional use", free_f1: "CSV export", free_f2: "JSON export",
+    free_f3: "Single-tab extraction", free_f4: "Filter & search links", free_f5: "Unlimited pages", free_btn: "Get Started Free",
+    pro_desc: "For power users and professionals", pro_f1: "Everything in Free", pro_f2: "Excel (.xlsx) export",
+    pro_f3: "Multi-tab extraction", pro_f4: "Broken link checker", pro_f5: "Priority support",
+    pro_btn: "Upgrade to Pro",
+    testi_label: "Testimonials", testi_title: "Loved by SEO pros and developers worldwide",
+    t1_text: '"I used to manually collect links for backlink analysis. Now I harvest 200+ links from any page in seconds and export to Excel. Absolute game changer."',
+    t2_text: '"The broken link checker alone is worth the Pro subscription. Found 40 dead links on our site in 30 seconds — before it hurt our SEO."',
+    t3_text: '"As a content manager, I audit link structure on dozens of pages every month. LinkHarvest Pro cut my audit time by 90%."',
+    faq_label: "FAQ", faq_title: "Frequently asked questions",
+    q1: "Does it work on every website?", a1: "Yes. LinkHarvest Pro works on any website — including dynamic pages rendered by JavaScript. If you can see links on screen, the extension can extract them.",
+    q2: "Is my data safe?", a2: "Your link data never leaves your browser. Extraction and export happen entirely on your machine. We only communicate with our servers for authentication and license validation.",
+    q3: "Can I cancel anytime?", a3: "Absolutely. Cancel from your dashboard in one click. You keep Pro access until the end of the billing period. No questions asked.",
+    q4: "How many links can I extract per day?", a4: "No limits. Extract links from as many pages as you need, as often as you need.",
+    q5: "Is there a free trial for Pro?", a5: "The Free plan is permanent and includes CSV/JSON export. You can use all core functionality before deciding to upgrade to Pro for Excel, multi-tab and broken link checking.",
+    cta_title: "Start harvesting links in 10 seconds.", cta_sub: "Free plan. No credit card. Install and use immediately.", cta_btn: "⬇ Add to Chrome — Free",
+    footer_rights: "All rights reserved", footer_privacy: "Privacy Policy", footer_terms: "Terms of Service", footer_contact: "Contact"
+  },
+  pt: {
+    nav_features: "Funcionalidades", nav_how: "Como funciona", nav_pricing: "Preços",
+    nav_faq: "FAQ", nav_cta: "Adicionar ao Chrome — Grátis",
+    hero_badge: "Novo · Versão 1.0.0",
+    hero_title: "Extraia <em>todos os links</em> de qualquer site. Instantaneamente.",
+    hero_sub: "Colete todos os links de qualquer página — internos, externos, quebrados — e exporte para Excel, CSV ou JSON com um clique. Sem código.",
+    hero_cta1: "⬇ Adicionar ao Chrome — É Grátis", hero_cta2: "▶ Ver como funciona",
+    hero_note: "Sem cartão de crédito · Plano gratuito para sempre disponível",
+    mockup_subtitle: "Extração e análise de links", mockup_tab1: "Aba atual", mockup_tab2: "Multi-Tab ⚡",
+    logos_label: "Funciona em qualquer site, incluindo",
+    feat_label: "Funcionalidades", feat_title: "Tudo que você precisa para coletar links rápido",
+    feat_sub: "Um clique. Sem copiar. Filtre, analise e exporte. Só seus links, prontos para usar.",
+    f1_title: "Exportar para Excel", f1_desc: "Baixe todos os links como um arquivo .xlsx com colunas para URL, texto âncora, tipo e código de status.",
+    f2_title: "Exportar CSV e JSON", f2_desc: "O plano gratuito inclui exportação CSV e JSON. Perfeito para desenvolvedores e analistas de SEO.",
+    f3_title: "Extração multi-abas", f3_desc: "Selecione várias abas do Chrome e exporte todos os links em um único arquivo Excel.",
+    f4_title: "Verificador de links quebrados", f4_desc: "Escaneie a página e detecte 404s e links quebrados instantaneamente. Mantenha seu site saudável.",
+    f5_title: "Filtrar e pesquisar", f5_desc: "Filtre por tipo (interno, externo), pesquise por palavra-chave ou URL e copie links individuais com um clique.",
+    f6_title: "Detecção instantânea", f6_desc: "A extensão detecta e categoriza automaticamente todos os links da página — incluindo os carregados dinamicamente.",
+    how_label: "Como funciona", how_title: "Três passos. Só isso.",
+    step1_title: "Instale a extensão", step1_desc: "Adicione o LinkHarvest Pro ao Chrome pela Web Store. Leva 10 segundos.",
+    step2_title: "Abra qualquer página", step2_desc: "Acesse qualquer site. Clique no ícone da extensão. Todos os links são detectados e categorizados.",
+    step3_title: "Exporte com um clique", step3_desc: "Escolha o formato — Excel, CSV ou JSON — e baixe. Seus dados de links ficam prontos imediatamente.",
+    price_label: "Preços", price_title: "Comece grátis. Faça upgrade quando quiser.", price_sub: "Sem pegadinhas. Cancele quando quiser.",
+    plan_free: "Gratuito", plan_pro: "Pro", per_month: "/mês",
+    free_desc: "Ideal para uso ocasional", free_f1: "Exportar CSV", free_f2: "Exportar JSON",
+    free_f3: "Extração de aba única", free_f4: "Filtrar e pesquisar links", free_f5: "Páginas ilimitadas", free_btn: "Começar Grátis",
+    pro_desc: "Para usuários avançados e profissionais", pro_f1: "Tudo do plano Grátis", pro_f2: "Exportar Excel (.xlsx)",
+    pro_f3: "Extração multi-abas", pro_f4: "Verificador de links quebrados", pro_f5: "Suporte prioritário",
+    pro_btn: "Assinar Pro",
+    testi_label: "Depoimentos", testi_title: "Amado por especialistas em SEO e desenvolvedores",
+    t1_text: '"Eu coletava links manualmente para análise de backlinks. Agora coleto 200+ links de qualquer página em segundos e exporto para Excel. Incrível."',
+    t2_text: '"O verificador de links quebrados sozinho já vale o Pro. Encontrei 40 links mortos no nosso site em 30 segundos — antes de prejudicar nosso SEO."',
+    t3_text: '"Como gerente de conteúdo, audito a estrutura de links de dezenas de páginas todo mês. O LinkHarvest Pro reduziu meu tempo de auditoria em 90%."',
+    faq_label: "FAQ", faq_title: "Perguntas frequentes",
+    q1: "Funciona em qualquer site?", a1: "Sim. Funciona em qualquer site — inclusive páginas dinâmicas renderizadas por JavaScript. Se você consegue ver links na tela, a extensão consegue extraí-los.",
+    q2: "Meus dados estão seguros?", a2: "Seus dados de links nunca saem do seu navegador. A extração e exportação acontecem inteiramente na sua máquina.",
+    q3: "Posso cancelar quando quiser?", a3: "Sim. Cancele pelo painel com um clique. Você mantém acesso Pro até o fim do período. Sem perguntas.",
+    q4: "Quantos links posso extrair por dia?", a4: "Sem limites. Extraia links de quantas páginas precisar, com a frequência que quiser.",
+    q5: "Tem período de teste para o Pro?", a5: "O plano gratuito é permanente e inclui CSV/JSON. Faça upgrade quando precisar de Excel, multi-abas e verificação de links quebrados.",
+    cta_title: "Comece a coletar links em 10 segundos.", cta_sub: "Plano gratuito. Sem cartão. Instale e use agora.", cta_btn: "⬇ Adicionar ao Chrome — Grátis",
+    footer_rights: "Todos os direitos reservados", footer_privacy: "Privacidade", footer_terms: "Termos de Uso", footer_contact: "Contato"
+  },
+  ja: {
+    nav_features: "機能", nav_how: "使い方", nav_pricing: "料金", nav_faq: "FAQ", nav_cta: "Chromeに追加（無料）",
+    hero_badge: "新着 · バージョン 1.0.0",
+    hero_title: "あらゆるサイトの<em>リンクを即座に</em>抽出。",
+    hero_sub: "どのページからでもリンク（内部・外部・壊れたもの）を収集し、Excel・CSV・JSONに1クリックでエクスポート。",
+    hero_cta1: "⬇ Chromeに追加（無料）", hero_cta2: "▶ 使い方を見る",
+    hero_note: "クレジットカード不要 · 永久無料プランあり",
+    cta_title: "10秒でリンク収集を始めよう。", cta_btn: "⬇ Chromeに追加（無料）",
+    free_btn: "無料ではじめる", pro_btn: "Proにアップグレード", per_month: "/月"
+  },
+  de: {
+    nav_features: "Funktionen", nav_how: "Wie es funktioniert", nav_pricing: "Preise", nav_faq: "FAQ", nav_cta: "Zu Chrome hinzufügen — Kostenlos",
+    hero_title: "<em>Alle Links</em> von beliebigen Websites extrahieren. Sofort.",
+    hero_sub: "Alle Links von jeder Seite — intern, extern, kaputt — in Excel, CSV oder JSON exportieren. Kein Coding nötig.",
+    hero_cta1: "⬇ Zu Chrome hinzufügen — Kostenlos", hero_cta2: "▶ So funktioniert's",
+    cta_title: "Links in 10 Sekunden sammeln.", cta_btn: "⬇ Zu Chrome hinzufügen — Kostenlos",
+    free_btn: "Kostenlos starten", pro_btn: "Auf Pro upgraden", per_month: "/Monat"
+  },
+  fr: {
+    nav_features: "Fonctionnalités", nav_how: "Comment ça marche", nav_pricing: "Tarifs", nav_faq: "FAQ", nav_cta: "Ajouter à Chrome — Gratuit",
+    hero_title: "Extrayez <em>tous les liens</em> de n'importe quel site. Instantanément.",
+    hero_sub: "Récoltez tous les liens d'une page — internes, externes, brisés — et exportez en Excel, CSV ou JSON en un clic.",
+    hero_cta1: "⬇ Ajouter à Chrome — Gratuit", hero_cta2: "▶ Voir comment ça marche",
+    cta_title: "Commencez à collecter des liens en 10 secondes.", cta_btn: "⬇ Ajouter à Chrome — Gratuit",
+    free_btn: "Commencer gratuitement", pro_btn: "Passer à Pro", per_month: "/mois"
+  },
+  es: {
+    nav_features: "Funciones", nav_how: "Cómo funciona", nav_pricing: "Precios", nav_faq: "FAQ", nav_cta: "Añadir a Chrome — Gratis",
+    hero_title: "Extrae <em>todos los enlaces</em> de cualquier sitio. Al instante.",
+    hero_sub: "Recopila todos los enlaces de cualquier página — internos, externos, rotos — y exporta a Excel, CSV o JSON en un clic.",
+    hero_cta1: "⬇ Añadir a Chrome — Gratis", hero_cta2: "▶ Ver cómo funciona",
+    cta_title: "Empieza a recopilar enlaces en 10 segundos.", cta_btn: "⬇ Añadir a Chrome — Gratis",
+    free_btn: "Empezar gratis", pro_btn: "Actualizar a Pro", per_month: "/mes"
+  }
+};
+
+let currentLang = 'en';
+
+function applyTranslations(lang) {
+  const t = { ...TRANSLATIONS.en, ...(TRANSLATIONS[lang] || {}) };
+  currentLang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key]) el.textContent = t[key];
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const key = el.getAttribute('data-i18n-html');
+    if (t[key]) el.innerHTML = t[key];
+  });
+  document.documentElement.lang = lang;
+}
+
+document.getElementById('langSelect').addEventListener('change', e => {
+  applyTranslations(e.target.value);
+  localStorage.setItem('lh_lang', e.target.value);
+});
+
+const savedLang = localStorage.getItem('lh_lang');
+const browserLang = navigator.language.split('-')[0];
+const detectedLang = savedLang || (['pt','ja','de','fr','es'].includes(browserLang) ? browserLang : 'en');
+document.getElementById('langSelect').value = detectedLang;
+applyTranslations(detectedLang);
+
+document.querySelectorAll('.faq-q').forEach(q => {
+  q.addEventListener('click', () => {
+    const item = q.parentElement;
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  });
+});
+
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('navLinks').classList.remove('open');
+    document.getElementById('navHamburger').classList.remove('open');
+  });
+});
+
+document.getElementById('navHamburger').addEventListener('click', () => {
+  document.getElementById('navLinks').classList.toggle('open');
+  document.getElementById('navHamburger').classList.toggle('open');
+});
+</script>
+
+</body>
+</html>
